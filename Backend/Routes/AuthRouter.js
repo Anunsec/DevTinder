@@ -50,23 +50,35 @@ try {
 
 
 
+// AuthRouter.post("/logout",async(req,res)=>{
+//   res.cookie("token", null, {
+//     expires: new Date(Date.now()),
+//   });
+//   res.send("Logout Successful!!");
 
-AuthRouter.get("/profile",UserAuth,async(req,res)=>{
-try{
-    const LoggedInUser= req.user
+// })
 
-    const data = await User.findById(LoggedInUser._id).select("firstName lastName")
-    res.json({message:"Profile get successsfully",data:data})
+AuthRouter.post("/logout", UserAuth, (req, res) => {
+  try {
+    // Get token from cookie or Authorization header
+    const token = req.cookies?.Token || req.header("Authorization")?.replace("Bearer ", "");
 
-} catch (error) {
-    res.status(400).send(error.message)
-}
+    if (!token) return res.status(401).json({ message: "No token provided" });
 
-})
+    // 1️⃣ Add token to blacklist to expire it immediately
+    global.tokenBlacklist = global.tokenBlacklist || new Set();
+    global.tokenBlacklist.add(token);
 
+    // 2️⃣ Clear cookie on client-side
+    res.cookie("Token", null, {
+      expires: new Date(0), // expire immediately
+    });
 
-
-
+    res.status(200).json({ message: "Logout successful. Token expired." });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 
 
